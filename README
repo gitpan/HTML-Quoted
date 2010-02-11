@@ -1,0 +1,12 @@
+NAME
+    HTML::Quoted - extract structure of quoted HTML mail message
+
+DESCRIPTION
+    No description, yet. Very experimental. See also Text::Quoted.
+
+AUTHOR
+    Ruslan.Zakirov <ruz@bestpractical.com>
+
+LICENSE
+    Under the same terms as perl itself.
+

@@ -1,0 +1,26 @@
+---
+abstract: 'extract structure of quoted HTML mail message'
+author:
+  - 'Ruslan.Zakirov <ruz@bestpractical.com>'
+build_requires:
+  ExtUtils::MakeMaker: 6.42
+configure_requires:
+  ExtUtils::MakeMaker: 6.42
+distribution_type: module
+generated_by: 'Module::Install version 0.92'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+module_name: HTML::Quoted
+name: HTML-Quoted
+no_index:
+  directory:
+    - inc
+    - t
+requires:
+  HTML::Parser: 3.0
+  perl: 5.8.0
+resources:
+  license: http://dev.perl.org/licenses/
+version: 0.01
