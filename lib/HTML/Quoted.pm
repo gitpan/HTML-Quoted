@@ -4,7 +4,7 @@ use warnings;
 
 package HTML::Quoted;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 =head1 NAME
 
@@ -104,11 +104,14 @@ sub combine {
     }
 }
 
+# XXX: p is treated as inline tag as it's groupping tag that
+# can not contain blocks inside, use span for groupping
 my %INLINE_TAG = map {$_ => 1 } qw(
     a br span bdo map img
     tt i b big small
     em strong dfn code q
     samp kbd var cite abbr acronym sub sup
+    p
 );
 
 my %ENTITIES = (
