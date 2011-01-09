@@ -4,15 +4,73 @@ use warnings;
 
 package HTML::Quoted;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 =head1 NAME
 
 HTML::Quoted - extract structure of quoted HTML mail message
 
+=head1 SYNOPSIS
+
+    use HTML::Quoted;
+    my $html = '...';
+    my $struct = HTML::Quoted->extract( $html );
+
 =head1 DESCRIPTION
 
-No description, yet. Very experimental. See also L<Text::Quoted>.
+Parses and extracts quotation structure out of a HTML message.
+Purpose and returned structures are very similar to
+L<Text::Quoted>.
+
+=head1 SUPPORTED FORMATS
+
+Variouse MUAs use quite different approaches for quoting in mails.
+
+Some use I<blockquote> tag and it's quite easy to parse.
+
+Some wrap text into I<p> tags and add '>' in the beginning of the
+paragraphs.
+
+Things gettign messier when it's an HTML reply on plain text mail
+thread.
+
+If B<you found format> that is not supported then file a bug report
+via rt.cpan.org with as short as possible example. B<Test file>
+is even better. Test file with patch is the best. Not obviouse patches
+without tests suck.
+
+=head1 METHODS
+
+=head2 extract
+
+    my $struct = HTML::Quoted->extract( $html );
+
+Takes a string with HTML and returns array reference. Each element
+in the array either array or hash. For example:
+
+
+    [
+        { 'raw' => 'Hi,' },
+        { 'raw' => '<div><br><div>On date X wrote:<br>' },
+        [
+             { 'raw' => '<blockquote>' },
+             { 'raw' => 'Hello,' },
+             { 'raw' => '<div>How are you?</div>' },
+             { 'raw' => '</blockquote>' }
+        ],
+        ...
+    ]
+
+Hashes represent a part of the html. The following keys are
+meaningful at the moment:
+
+=over 4
+
+=item * raw - raw HTML
+
+=item * quoter_raw, quoter - raw and decoded (entities are converted) quoter if block is prefixed with quoting characters
+
+=back
 
 =cut
 
@@ -130,20 +188,22 @@ sub handle_start {
     my ($self, $tag, $attr, $attrseq, $text) = @_;
 
     my $meta = $self->{'html_quoted_parser'};
+    my $stack = $meta->{'stack'};
+
     if ( $meta->{'in'}{'br'} ) {
         $meta->{'in'}{'br'} = 0;
-        push @{ $meta->{'stack'}[-1] }, $meta->{'current'} = {};
+        push @{ $stack->[-1] }, $meta->{'current'} = {};
     }
 
     if ( $tag eq 'blockquote' ) {
         my $new = [{ quote => 1, block => 1 }];
-        push @{ $meta->{'stack'}[-1] }, $new;
-        push @{ $meta->{'stack'} }, $new;
+        push @{ $stack->[-1] }, $new;
+        push @$stack, $new; # HACK: everything pushed into this
         $meta->{'current'} = $new->[0];
         $meta->{'in'}{'quote'}++;
         push @{ $meta->{'in'}{'block'} }, 0;
         $meta->{'current'}{'raw'} .= $text;
-        push @{ $meta->{'stack'}[-1] }, $meta->{'current'} = {};
+        push @{ $stack->[-1] }, $meta->{'current'} = {};
     }
     elsif ( $tag eq 'br' && !$meta->{'in'}{'block'}[-1] ) {
         $meta->{'current'}{'raw'} .= $text;
@@ -157,16 +217,13 @@ sub handle_start {
         $meta->{'in'}{'br'} = 1;
     }
     elsif ( !$INLINE_TAG{ $tag } ) {
-        if ( !$meta->{'in'}{'block'}[-1] ) {
-            if ( keys %{ $meta->{'current'} } ) {
-                push @{ $meta->{'stack'}[-1] }, $meta->{'current'}
-                    = { block => 1, raw => '' };
-            } else {
-                $meta->{'current'}{'block'} = 1;
-            }
+        if ( !$meta->{'in'}{'block'}[-1] && keys %{ $meta->{'current'} } ) {
+            push @{ $stack->[-1] }, $meta->{'current'} = { raw => '' };
         }
-        $meta->{'in'}{'block'}[-1]++;
+        $meta->{'current'}{'block'} = 1;
         $meta->{'current'}{'raw'} .= $text;
+
+        $meta->{'in'}{'block'}[-1]++;
     }
     else {
         $meta->{'current'}{'raw'} .= $text;
@@ -177,27 +234,35 @@ sub handle_end {
     my ($self, $tag, $text) = @_;
 
     my $meta = $self->{'html_quoted_parser'};
+    my $stack = $meta->{'stack'};
 
     if ( $meta->{'in'}{'br'} && $tag ne 'br' ) {
         $meta->{'in'}{'br'} = 0;
-        push @{ $meta->{'stack'}[-1] }, $meta->{'current'} = {}
+        push @{ $stack->[-1] }, $meta->{'current'} = {}
     }
 
     $meta->{'current'}{'raw'} .= $text;
 
     if ( $tag eq 'blockquote' ) {
-        pop @{ $meta->{'stack'} };
-        push @{ $meta->{'stack'}[-1] }, $meta->{'current'} = { quote => 1 };
+        pop @$stack;
+        pop @{ $meta->{'in'}{'block'} };
+        push @{ $stack->[-1] }, $meta->{'current'} = {};
         $meta->{'in'}{'quote'}--;
     }
     elsif ( $tag eq 'br' ) {
         $meta->{'in'}{'br'} = 0;
-        push @{ $meta->{'stack'}[-1] }, $meta->{'current'} = {}
+        push @{ $stack->[-1] }, $meta->{'current'} = {}
+    }
+    elsif ( $tag eq 'p' ) {
+        push @{ $stack->[-1] }, $meta->{'current'} = {}
     }
     elsif ( !$INLINE_TAG{ $tag } ) {
         $meta->{'in'}{'block'}[-1]--;
-        push @{ $meta->{'stack'}[-1] }, $meta->{'current'} = {}
-            unless $meta->{'in'}{'block'}[-1];
+        if ( $meta->{'in'}{'block'}[-1] ) {
+            $meta->{'current'}{'block'} = 1;
+        } else {
+            push @{ $stack->[-1] }, $meta->{'current'} = {};
+        }
     }
 }
 

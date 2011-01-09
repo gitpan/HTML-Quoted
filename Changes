@@ -1,3 +1,10 @@
+0.03 2011-01-09
+
+    * much more user friendlier documentation
+    * get rid of empty {} in the results
+    * fix mixed plain text quoting and blockquotes
+    * properly handle </p>
+
 0.02 2010-02-27
 
     * treat P tag as inline, for now
