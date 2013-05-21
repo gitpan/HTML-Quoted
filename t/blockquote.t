@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 1;
+use Test::More tests => 2;
 use HTML::Quoted;
 use Data::Dumper;
 
@@ -65,4 +65,13 @@ sub check {
          ];
 
     check( $text, $res );
+
+    # Really, we should not expect this to exactly round-trip in all cases, as
+    # we could be collapsing whitespace somewhere, I fear.  Rather than
+    # investigate that carefully, I will just write this comment.
+    # Other input might need more massaging.  -- rjbs, 2013-05-21
+    is(
+      HTML::Quoted->combine_hunks( HTML::Quoted->extract( $text ) ),
+      $text,
+    );
 }

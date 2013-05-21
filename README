@@ -53,6 +53,11 @@ METHODS
     *   quoter_raw, quoter - raw and decoded (entities are converted) quoter
         if block is prefixed with quoting characters
 
+  combine_hunks
+      my $html = HTML::Quoted->combine_hunks( $arrayref_of_hunks );
+
+    Takes the output of "extract" and turns it back into HTML.
+
 AUTHOR
     Ruslan.Zakirov <ruz@bestpractical.com>
 

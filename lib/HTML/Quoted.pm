@@ -4,7 +4,7 @@ use warnings;
 
 package HTML::Quoted;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 =head1 NAME
 
@@ -92,6 +92,21 @@ sub extract {
     $parser->eof;
 
     return $parser->{'html_quoted_parser'}{'result'};
+}
+
+=head2 combine_hunks
+
+  my $html = HTML::Quoted->combine_hunks( $arrayref_of_hunks );
+
+Takes the output of C<extract> and turns it back into HTML.
+
+=cut
+
+sub combine_hunks {
+    my ($self, $hunks) = @_;
+
+    join "",
+      map {; ref $_ eq 'HASH' ? $_->{raw} : $self->combine_hunks($_) } @$hunks;
 }
 
 package HTML::Quoted::Parser;
